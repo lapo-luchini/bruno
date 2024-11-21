@@ -1,6 +1,5 @@
 import React, { useState, useRef, forwardRef, useEffect } from 'react';
 import range from 'lodash/range';
-import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
@@ -25,6 +24,7 @@ import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 import { uuid } from 'utils/common';
+import { getSortedItems } from 'utils/collections/order';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -171,15 +171,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   }
 
-  // we need to sort request items by seq property
-  const sortRequestItems = (items = []) => {
-    return items.sort((a, b) => a.seq - b.seq);
-  };
-
-  // we need to sort folder items by name alphabetically
-  const sortFolderItems = (items = []) => {
-    return items.sort((a, b) => a.name.localeCompare(b.name));
-  };
   const handleGenerateCode = (e) => {
     e.stopPropagation();
     dropdownTippyRef.current.hide();
@@ -211,8 +202,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   };
 
-  const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
-  const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
+  const { folderItems, requestItems } = getSortedItems(collection, item);
 
   return (
     <StyledWrapper className={className}>

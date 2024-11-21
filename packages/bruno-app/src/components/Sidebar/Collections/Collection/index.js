@@ -1,7 +1,6 @@
 import React, { useState, forwardRef, useRef, useEffect } from 'react';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
-import filter from 'lodash/filter';
 import { useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
@@ -15,8 +14,7 @@ import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
 import ExportCollection from './ExportCollection';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest, transformCollectionToSaveToExportAsFile } from 'utils/collections';
-import exportCollection from 'utils/collections/export';
+import { getSortedItems } from 'utils/collections/order';
 
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
@@ -109,18 +107,7 @@ const Collection = ({ collection, searchText }) => {
     }
   }
 
-  // we need to sort request items by seq property
-  const sortRequestItems = (items = []) => {
-    return items.sort((a, b) => a.seq - b.seq);
-  };
-
-  // we need to sort folder items by name alphabetically
-  const sortFolderItems = (items = []) => {
-    return items.sort((a, b) => a.name.localeCompare(b.name));
-  };
-
-  const requestItems = sortRequestItems(filter(collection.items, (i) => isItemARequest(i)));
-  const folderItems = sortFolderItems(filter(collection.items, (i) => isItemAFolder(i)));
+  const { folderItems, requestItems } = getSortedItems(collection, collection);
 
   return (
     <StyledWrapper className="flex flex-col">
