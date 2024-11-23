@@ -4,13 +4,9 @@ import { updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actio
 import { useDispatch } from 'react-redux';
 import { isItemAFolder, isItemARequest } from 'utils/collections';
 
-function missingToLast(i) {
-  return i == -1 ? Number.MAX_SAFE_INTEGER : i;
-}
+const arrayIdentical = (a, b) => a && b && a.every((v, i) => v === b[i]);
 
-function objectSortByKey(obj) {
-  return Object.fromEntries(Object.entries(obj).sort(([k1], [k2]) => k1.localeCompare(k2)));
-}
+const objectSortByKey = obj => Object.fromEntries(Object.entries(obj).sort(([k1], [k2]) => k1.localeCompare(k2)));
 
 export const getSortedItems = (collection, item) => {
   if (!('items' in item)) {
@@ -18,32 +14,38 @@ export const getSortedItems = (collection, item) => {
   }
 
   const relName = item.pathname.slice(collection.pathname.length + 1);
+  const baseLength = item.pathname.length + 1;
+  const order = collection.brunoConfig?.order?.[relName];
 
-  const items = item.items.toSorted((a, b) => {
+  const sortedItems = item.items.toSorted((a, b) => {
+    if (order) {
+      let iA = order.indexOf(a.pathname.slice(baseLength));
+      let iB = order.indexOf(b.pathname.slice(baseLength));
+      //console.log('Compare:', a, b, iA, iB);
+      if (iA != -1 && iB != -1) return iA - iB;
+    }
     if ('seq' in a || 'seq' in b) {
       return +a.seq - +b.seq;
     }
     return a.name.localeCompare(b.name);
   });
+  // console.log('Sorted:', item, items);
 
-  const requestItems = items.filter(isItemARequest);
-  const folderItems = items.filter(isItemAFolder);
+  const orderNew = sortedItems.map(i => i.pathname.slice(baseLength));
 
-  if (isItemAFolder(item) && (!collection.brunoConfig.order || !collection.brunoConfig.order[relName])) {
+  if (!arrayIdentical(order, orderNew)) {
+    console.log("Order changed:", order, orderNew);
     const dispatch = useDispatch();
     const brunoConfig = cloneDeep(collection.brunoConfig);
     if (!brunoConfig.order) {
       brunoConfig.order = {};
     }
-    const baseLength = item.pathname.length + 1;
-    const sortedElements = folderItems
-      .map(i => i.pathname.slice(baseLength))
-      .concat(requestItems.map(i => i.pathname.slice(baseLength)));
-    brunoConfig.order[relName] = sortedElements;
+    brunoConfig.order[relName] = orderNew;
     brunoConfig.order = objectSortByKey(brunoConfig.order);
     dispatch(updateBrunoConfig(brunoConfig, collection.uid));
-    console.log('Updated config:', collection);
   }
 
+  const requestItems = sortedItems.filter(isItemARequest);
+  const folderItems = sortedItems.filter(isItemAFolder);
   return { folderItems, requestItems };
 };
